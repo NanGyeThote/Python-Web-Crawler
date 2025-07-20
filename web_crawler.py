@@ -12,9 +12,18 @@ from io import BytesIO
 from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 
+
+
+"""
+If you guys are familiar with dotenv then just create .env file in the same dir as this.
+Then in .env -> 
+GOOGLE_API_KEY="YOUR_API_KEY"
+GOOGLE_CX="GOOGLE_CX"
+and else ......
+"""
+
 load_dotenv()
 
-# --- API KEYS (replace with your actual keys) ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GOOGLE_CX = os.getenv("GOOGLE_CSE_ID")
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
@@ -34,14 +43,14 @@ class ImageDownloaderApp:
             "ထမင်းပေါင်း", "ကြာဇံချက်", "ကတ်ကြေးကိုက်", "ကြေးအိုးဆီချက်", "ကောက်ညှင်းပေါင်း",
             "ခေါက်ဆွဲသုပ်", "တိုဖူးနွေး", "ထမနဲ", "နန်းကြီးသုပ်", "မုန့်ဖက်ထုပ်", "မုန့်လက်ဆောင်း", "မုန့်လင်မယား",
             "မုန့်ဟင်းခါး", "ရွှေရင်အေး", "ရှမ်းခေါက်ဆွဲ", "လက်ဖက်သုပ်", "သာကူ", "အာပူလျှာပူ", "အုန်းနို့ခေါက်ဆွဲ", 
-            "ဝက်သားဒုတ်ထိုး", "cats"
+            "ဝက်သားဒုတ်ထိုး", "cats" # Just for testing XDXD, I ain't gonna eat the cats...
         ]
         self.category_var = tk.StringVar(value=categories[0])
         tk.Label(self.root, text="Category:").grid(row=0, column=0, sticky="e")
         self.category_menu = tk.OptionMenu(self.root, self.category_var, *categories)
         self.category_menu.grid(row=0, column=1)
 
-        # Engine selection dropdown (remove DuckDuckGo, Bing, Bing API; add Unsplash)
+        # Engine selection 
         tk.Label(self.root, text="Engine:").grid(row=1, column=0, sticky="e")
         self.engine = tk.StringVar(value="Google API")
         tk.OptionMenu(self.root, self.engine, "Google API", "Google", "Unsplash").grid(row=1, column=1, sticky="w")
@@ -85,11 +94,11 @@ class ImageDownloaderApp:
             self.fld.config(text=d)
 
     def start(self):
-        # Always reset thread and queue state
+        # Reset
         self.thread = None
         self.update_queue = queue.Queue()
-        # Clear progress bar, error log, and thumbnails
-        self.pb["value"] = 0  # Reset progress bar at start
+        # Clean
+        self.pb["value"] = 0  # Reset 
         try:
             max_n = int(self.n.get())
         except ValueError:
@@ -102,15 +111,15 @@ class ImageDownloaderApp:
         if hasattr(self, "thread") and self.thread is not None and self.thread.is_alive():
             messagebox.showinfo("Please wait", "Download is already running")
             return
-        # Use the selected category as the query
+       
         query = self.category_var.get().strip()
         if not query or not hasattr(self, "folder"):
             messagebox.showwarning("", "Please fill all fields")
             return
         self.stop_event.clear()
-        self.btn.config(state=tk.DISABLED)  # Disable Download button
+        self.btn.config(state=tk.DISABLED) 
         self.thread = threading.Thread(target=self._download_worker, args=(self.update_queue, query, self.engine.get(), self.ftype.get(), max_n))
-        self.thread.daemon = True  # Make thread a daemon so it won't block exit
+        self.thread.daemon = True  
         self.thread.start()
         self.root.after(100, self._process_queue)
 
@@ -128,18 +137,17 @@ class ImageDownloaderApp:
                     self.add_thumbnail(data)
                 elif message == "finished":
                     downloaded, errors = data
-                    self.pb["value"] = self.pb["maximum"]  # Always fill the progress bar on finish
+                    self.pb["value"] = self.pb["maximum"]  
                     self.log.insert("end", f"[DEBUG] Download finished. Downloaded: {downloaded}, Errors: {errors}")
                     messagebox.showinfo("Finished", f"Downloaded: {downloaded}, Errors: {errors}")
-                    self.btn.config(state=tk.NORMAL)  # Re-enable Download button
-                    self.thread = None  # Allow new downloads
+                    self.btn.config(state=tk.NORMAL)  
+                    self.thread = None  
                     finished_processed = True
         except queue.Empty:
             pass
-        # Always reschedule unless finished was processed
+
         if not finished_processed:
             self.root.after(100, self._process_queue)
-        # If the thread is dead but finished wasn't processed, log an error
         elif self.thread is not None and not self.thread.is_alive():
             self.log.insert("end", "[ERROR] Worker thread exited without sending 'finished'.")
 
@@ -186,6 +194,10 @@ class ImageDownloaderApp:
             return results[:num]
 
         def unsplash_api_search(query, num=10):
+            """
+            Kindly reminder that unsplash isn't good for Burmese Foods, I just overdid and 
+            don't wanna remove it so that why it is here!
+            """
             url = UNSPLASH_ENDPOINT
             params = {
                 'query': query,
@@ -231,7 +243,7 @@ class ImageDownloaderApp:
                 for img_url in image_urls:
                     if downloaded_count >= max_n or self.stop_event.is_set():
                         break
-                    # Only allow HTTPS URLs
+                    # HTTPS only
                     if not urlparse(img_url).scheme == "https":
                         continue
                     try:
@@ -386,13 +398,11 @@ class ImageDownloaderApp:
                         error_count += 1
                         log(f"Skipped: {img_url[:70]}... | Download error: {e}")
         finally:
-            # Always send finished, even on error or early exit
             if not self.stop_event.is_set():
                 q.put(("finished", (downloaded_count, error_count)))
 
     def on_close(self):
         self.stop_event.set()
-        # Immediately destroy the window, don't wait for thread
         self.root.destroy()
 
     def check_thread_and_close(self):
