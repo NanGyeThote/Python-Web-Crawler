@@ -12,8 +12,6 @@ from io import BytesIO
 from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 
-
-
 """
 If you guys are familiar with dotenv then just create .env file in the same dir as this.
 Then in .env -> 
